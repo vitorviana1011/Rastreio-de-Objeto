@@ -1,10 +1,11 @@
 import cv2
+import matplotlib.pyplot as plt
 
 ARQUIVO_VIDEO = "video_transito2.mp4" 
 
 TAMANHO_SUAVIZACAO = (15, 15) 
 LIMIAR_BINARIZACAO = 30
-AREA_MIN_CONTORNO = 500
+AREA_MIN_CONTORNO = 700
 
 cap = cv2.VideoCapture(ARQUIVO_VIDEO)
 
@@ -13,6 +14,9 @@ if not cap.isOpened():
     exit()
 
 frame_anterior = None
+
+#lista para guar o numero de pixels brancos
+pixels_movimento_por_frame = []
 
 print("Pressiona 'q' na janela do vídeo para sair.")
 while True:
@@ -27,7 +31,8 @@ while True:
     # Pré-processamento
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray_blur = cv2.GaussianBlur(gray, TAMANHO_SUAVIZACAO, 0)
-
+    #tamanho_blur_mediana = 15 
+    #gray_blur = cv2.medianBlur(gray, tamanho_blur_mediana)  
     
     if frame_anterior is None:
         frame_anterior = gray_blur
@@ -43,6 +48,10 @@ while True:
     
     # Pos-processamento da máscara
     thresh_frame = cv2.dilate(thresh_frame, None, iterations=2)
+
+    #conta os pixels brancos na mascara
+    pixels_em_movimento = cv2.countNonZero(thresh_frame)
+    pixels_movimento_por_frame.append(pixels_em_movimento)
 
     contornos, _ = cv2.findContours(thresh_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -62,4 +71,15 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-print("Script finalizado.")
+print("Script finalizado. Gerando gráfico de movimento...")
+
+plt.figure(figsize=(12, 6)) # Define o tamanho da figura do gráfico
+plt.plot(pixels_movimento_por_frame) # Plota os dados que coletamos
+plt.title("Nível de Movimento por Frame") # Título do gráfico
+plt.xlabel("Número do Frame") # Rótulo do eixo X
+plt.ylabel("Quantidade de Pixels em Movimento") # Rótulo do eixo Y
+plt.grid(True) # Adiciona uma grade para melhor visualização
+#plt.savefig("grafico_movimento.png") # Salva o gráfico como um arquivo de imagem
+plt.show() # Exibe o gráfico em uma nova janela
+
+print("Gráfico gerado e salvo como 'grafico_movimento.png'.")
